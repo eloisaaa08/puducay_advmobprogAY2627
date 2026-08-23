@@ -19,6 +19,7 @@ void main() async {
     _,
   ) async {
     await dotenv.load(fileName: 'assets/.env');
+
     runApp(const PuducayAdvMobProg());
   });
 }
@@ -36,13 +37,18 @@ class PuducayAdvMobProg extends StatelessWidget {
         splitScreenMode: true,
         builder: (build, child) {
           final themeModel = build.watch<ThemeProvider>();
+
           return MaterialApp(
             debugShowCheckedModeBanner: false,
+
             theme: themeModel.lightTheme,
             darkTheme: themeModel.darkTheme,
             themeMode: themeModel.isDark ? ThemeMode.dark : ThemeMode.light,
+
             title: 'E-Commerce App',
+
             initialRoute: '/home',
+
             routes: {
               '/home': (context) => const HomeScreen(),
               '/settings': (context) => const SettingsScreen(),
