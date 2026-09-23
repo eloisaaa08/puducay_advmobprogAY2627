@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../models/product.dart';
-import '../constants.dart';
 import '../services/cart_service.dart';
+import '../services/user_service.dart';
 import '../widgets/custom_text.dart';
 
 class ProductDetailScreen extends StatelessWidget {
@@ -125,18 +125,22 @@ class ProductDetailScreen extends StatelessWidget {
                   ],
 
                   // ============================================================
-                  // Enhancement 3:
-                  // Add the current product to the selected user's cart by
-                  // passing the product ID and quantity to CartService.
+                  // LAB ACTIVITY 4 — ENHANCEMENT 3
+                  // Add the current product to the SIGNED-IN user's cart.
+                  // The user ID is no longer hard-coded: it is read from the
+                  // saved User model (UserService -> SharedPreferences) so it
+                  // always matches whoever is currently logged in, which is
+                  // the same user whose cart is rendered by CartScreen.
                   // ============================================================
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton.icon(
                       onPressed: () async {
                         try {
+                          final currentUser = await UserService().getUser();
                           final cartService = CartService();
                           await cartService.addToCart(
-                            userId: currentUserId,
+                            userId: currentUser.id,
                             productId: product.id,
                             quantity: 1,
                           );

@@ -6,13 +6,14 @@ import '../services/cart_service.dart';
 import '../widgets/custom_text.dart';
 import 'detail_screen.dart';
 
-/// Enhancement 1:
+/// Enhancement 1 (Lab Activity 3):
 /// A dedicated cart screen renders the Cart API and makes each
 /// cart item clickable so the existing detail screen can be reused.
 ///
-/// Enhancement 3:
-/// userId is passed to the screen so the API can request only
-/// the selected user's cart.
+/// LAB ACTIVITY 4 — ENHANCEMENT 3:
+/// userId is now supplied by HomeScreen from the signed-in User model
+/// (UserService.getUser().id) so the API request below always returns
+/// the cart that belongs to whoever is currently logged in.
 class CartScreen extends StatefulWidget {
   final int userId;
 

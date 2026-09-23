@@ -15,9 +15,11 @@ class CartService {
   }
 
   // ============================================================
-  // Enhancement 3:
+  // LAB ACTIVITY 4 — ENHANCEMENT 3
   // Fetch only the cart that belongs to the supplied user ID.
-  // DummyJSON uses GET /carts/user/{id}.
+  // DummyJSON uses GET /carts/user/{id}. The userId passed in here comes
+  // from the User model HomeScreen loaded with UserService.getUser(), so
+  // the cart shown always matches the signed-in account.
   // ============================================================
   Future<Cart?> getCartByUserId(int userId) async {
     final response = await http.get(Uri.parse('$_host/carts/user/$userId'));

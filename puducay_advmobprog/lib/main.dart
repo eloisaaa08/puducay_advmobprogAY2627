@@ -8,6 +8,8 @@ import 'package:provider/provider.dart';
 // screens
 import 'screens/home_screen.dart';
 import 'screens/settings_screen.dart';
+import 'screens/signin_screen.dart';
+import 'screens/splash_screen.dart';
 
 // providers
 import 'providers/theme_provider.dart';
@@ -15,13 +17,11 @@ import 'providers/theme_provider.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]).then((
-    _,
-  ) async {
-    await dotenv.load(fileName: 'assets/.env');
+  await SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
 
-    runApp(const PuducayAdvMobProg());
-  });
+  await dotenv.load(fileName: 'assets/.env');
+
+  runApp(const PuducayAdvMobProg());
 }
 
 class PuducayAdvMobProg extends StatelessWidget {
@@ -35,22 +35,27 @@ class PuducayAdvMobProg extends StatelessWidget {
         designSize: const Size(412, 715),
         minTextAdapt: true,
         splitScreenMode: true,
-        builder: (build, child) {
-          final themeModel = build.watch<ThemeProvider>();
+        builder: (context, child) {
+          final themeModel = context.watch<ThemeProvider>();
 
           return MaterialApp(
             debugShowCheckedModeBanner: false,
+
+            title: 'E-Commerce App',
 
             theme: themeModel.lightTheme,
             darkTheme: themeModel.darkTheme,
             themeMode: themeModel.isDark ? ThemeMode.dark : ThemeMode.light,
 
-            title: 'E-Commerce App',
-
-            initialRoute: '/home',
+            initialRoute: '/splash',
 
             routes: {
+              '/splash': (context) => const SplashScreen(),
+
+              '/signin': (context) => const SignInScreen(),
+
               '/home': (context) => const HomeScreen(),
+
               '/settings': (context) => const SettingsScreen(),
             },
           );
