@@ -3,25 +3,7 @@ import 'package:flutter/material.dart';
 import '../models/user.dart';
 import '../services/user_service.dart';
 
-// ============================================================================
-// LAB ACTIVITY 4 — ENHANCEMENT 1
-// Custom UI for the Splash Screen implementing PERSISTENT AUTHENTICATION.
-//
-// How the persistent authentication works:
-//   1. On app start, this screen asks UserService.isLoggedIn() whether a
-//      valid access token is already stored in SharedPreferences (saved
-//      earlier by UserService.saveUserData() during a previous sign-in).
-//   2. If a token exists, the previously saved user data is read back with
-//      UserService.getUser() (which returns a strongly-typed User model,
-//      not a raw Map) and the user is sent straight to '/home' — they never
-//      have to log in again as long as their session is still on the
-//      device. This is what makes the authentication "persistent".
-//   3. If no token exists, the user is redirected to '/signin' instead.
-//
-// The custom UI below (branded background, animated logo/text fade-in,
-// and a themed progress indicator) replaces the plain placeholder splash
-// that shipped with the starter code.
-// ============================================================================
+// Splash screen that restores a saved DummyJSON or Firebase session before opening Home.
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
 
@@ -33,8 +15,7 @@ class _SplashScreenState extends State<SplashScreen>
     with SingleTickerProviderStateMixin {
   final UserService _userService = UserService();
 
-  // Enhancement 1: simple fade + slide-up animation so the splash screen
-  // does not feel like a static placeholder while the auth check runs.
+  // Fade and slide-up animation shown while the session check runs.
   late final AnimationController _controller = AnimationController(
     vsync: this,
     duration: const Duration(milliseconds: 900),
@@ -61,14 +42,9 @@ class _SplashScreenState extends State<SplashScreen>
     super.dispose();
   }
 
-  /// Enhancement 1: Persistent-authentication check.
-  ///
-  /// Reads the login flag + saved profile straight from SharedPreferences
-  /// (via UserService) instead of forcing the user through the sign-in
-  /// form every time the app is opened.
+  // Checks for a saved session and refreshes its token before skipping sign-in.
   Future<void> _checkAuthentication() async {
-    // Small delay so the splash branding is actually visible, and so the
-    // fade-in animation above has time to finish.
+    // Short delay so the splash branding and animation are visible.
     await Future.delayed(const Duration(milliseconds: 1500));
 
     final bool loggedIn = await _userService.isLoggedIn();
@@ -76,15 +52,22 @@ class _SplashScreenState extends State<SplashScreen>
     if (!mounted) return;
 
     if (loggedIn) {
-      // Session token found -> restore the saved User model and skip
-      // straight to Home without asking for credentials again.
+      // Enhancement 2: refreshes the Firebase ID token or DummyJSON access token, ignoring offline errors.
+      try {
+        if (await _userService.getLoginType() == LoginType.firebase) {
+          await _userService.refreshFirebaseToken();
+        } else {
+          await _userService.refreshDummyToken();
+        }
+      } catch (_) {}
+
       final User user = await _userService.getUser();
 
       if (!mounted) return;
 
       Navigator.pushReplacementNamed(context, '/home', arguments: user);
     } else {
-      // No stored session -> the user must sign in.
+      // No saved session, so the user must sign in.
       Navigator.pushReplacementNamed(context, '/signin');
     }
   }
@@ -94,8 +77,7 @@ class _SplashScreenState extends State<SplashScreen>
     final colorScheme = Theme.of(context).colorScheme;
 
     return Scaffold(
-      // Enhancement 1: soft branded gradient background instead of a
-      // plain white/placeholder scaffold.
+      // Soft branded gradient background.
       body: Container(
         width: double.infinity,
         height: double.infinity,
@@ -118,9 +100,7 @@ class _SplashScreenState extends State<SplashScreen>
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    // Branded logo badge. Falls back to an icon so the
-                    // screen still looks intentional if the asset is
-                    // missing from a given build.
+                    // Logo badge that falls back to an icon if the asset is missing.
                     Container(
                       width: 120,
                       height: 120,

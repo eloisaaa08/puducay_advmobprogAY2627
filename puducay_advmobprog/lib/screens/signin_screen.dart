@@ -1,34 +1,16 @@
+import 'package:firebase_auth/firebase_auth.dart' as fb;
 import 'package:flutter/material.dart';
 
 import '../services/user_service.dart';
 import '../widgets/custom_text.dart';
 
-// ============================================================================
-// LAB ACTIVITY 4 — ENHANCEMENT 2
-// Custom UI for the Sign-In Screen implementing UserService + the
-// authentication logic from the reference source code.
-//
-// Flow:
-//   1. The user fills in the username/password form below.
-//   2. _login() calls UserService.loginUser(), which POSTs the credentials
-//      to '<host>/auth/login'.
-//   3. UserService.loginUser() already calls saveUserData() internally on a
-//      successful response, so the returned profile + tokens are persisted
-//      to SharedPreferences right here at login time — this is the write
-//      side of the persistent authentication used by SplashScreen.
-//   4. On success the user is routed to '/home'; on failure a SnackBar
-//      reports the error and the form stays on screen.
-// ============================================================================
+// Sign-in screen that logs in through either DummyJSON or Firebase depending on the selected LoginType.
 
-// Enhancement 2: small NUBD Exchange brand palette (navy/gold, echoing the
-// crest used on the splash screen) kept local to this screen instead of
-// relying on the generic Material "blue swatch" theme color.
+// Navy/gold brand palette kept local to the auth screens.
 class _Brand {
   static const Color navy = Color(0xFF232A6B);
-  static const Color navyDark = Color(0xFF171C4A);
   static const Color gold = Color(0xFFF2B705);
   static const Color background = Color(0xFFF6F5FB);
-  static const Color textDark = Color(0xFF1F2233);
   static const Color textMuted = Color(0xFF6B7080);
 }
 
@@ -45,13 +27,17 @@ class _SignInScreenState extends State<SignInScreen> {
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
 
-  // Enhancement 2: same UserService used by the splash screen, so both
-  // screens read/write the exact same persisted session.
+  // Same UserService used by the splash screen so both read the same session.
   final UserService _userService = UserService();
+
+  // Enhancement 2: selected backend for this login attempt.
+  LoginType _loginType = LoginType.firebase;
 
   bool _isLoading = false;
   bool _obscurePassword = true;
   String? _errorMessage;
+
+  bool get _isFirebase => _loginType == LoginType.firebase;
 
   @override
   void dispose() {
@@ -60,9 +46,7 @@ class _SignInScreenState extends State<SignInScreen> {
     super.dispose();
   }
 
-  /// Enhancement 2: authentication logic — validates the form, calls
-  /// UserService.loginUser() (which also persists the session via
-  /// saveUserData()), then navigates to Home or shows the error.
+  // Enhancement 2: validates the form then signs in with DummyJSON or Firebase.
   Future<void> _login() async {
     if (_isLoading) return;
 
@@ -75,29 +59,42 @@ class _SignInScreenState extends State<SignInScreen> {
     setState(() => _isLoading = true);
 
     try {
-      final response = await _userService.loginUser(
-        _usernameController.text.trim(),
-        _passwordController.text,
-      );
+      if (_isFirebase) {
+        await _userService.signIn(
+          email: _usernameController.text.trim(),
+          password: _passwordController.text,
+        );
+      } else {
+        await _userService.loginUser(
+          _usernameController.text.trim(),
+          _passwordController.text,
+        );
+      }
 
-      // Session is already saved inside loginUser() -> saveUserData().
       if (!mounted) return;
 
       setState(() => _isLoading = false);
 
-      Navigator.pushReplacementNamed(context, '/home', arguments: response);
+      Navigator.pushReplacementNamed(context, '/home');
+    } on fb.FirebaseAuthException catch (e) {
+      _showError(e.message ?? 'Firebase sign-in failed.');
     } catch (e) {
-      if (!mounted) return;
-
-      setState(() {
-        _isLoading = false;
-        _errorMessage = 'Incorrect username or password. Please try again.';
-      });
-
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Login failed: ${e.toString()}')));
+      _showError('Incorrect username or password. Please try again.');
     }
+  }
+
+  // Shows the error message inside the form and as a SnackBar.
+  void _showError(String message) {
+    if (!mounted) return;
+
+    setState(() {
+      _isLoading = false;
+      _errorMessage = message;
+    });
+
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text('Login failed: $message')));
   }
 
   @override
@@ -108,10 +105,7 @@ class _SignInScreenState extends State<SignInScreen> {
       backgroundColor: _Brand.background,
       body: Stack(
         children: [
-          // ------------------------------------------------------------
-          // Enhancement 2: soft decorative brand blobs behind everything,
-          // instead of a flat single-color background.
-          // ------------------------------------------------------------
+          // Soft decorative brand blobs behind the form.
           Positioned(
             top: -size.width * 0.35,
             right: -size.width * 0.30,
@@ -138,10 +132,7 @@ class _SignInScreenState extends State<SignInScreen> {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    // --------------------------------------------------
-                    // Enhancement 2: brand mark + heading, matching the
-                    // activity's sample output layout.
-                    // --------------------------------------------------
+                    // Brand mark and heading.
                     Center(
                       child: Container(
                         width: 84,
@@ -186,16 +177,37 @@ class _SignInScreenState extends State<SignInScreen> {
                       text: 'Sign in to continue to NU Bulldogs Exchange',
                       fontSize: 14,
                       textAlign: TextAlign.center,
-                      fontStyle: FontStyle.normal,
                     ),
 
-                    const SizedBox(height: 32),
+                    const SizedBox(height: 24),
 
-                    // --------------------------------------------------
-                    // Enhancement 2: form fields sit on an elevated white
-                    // card so they read as one clear input group instead
-                    // of floating on the page background.
-                    // --------------------------------------------------
+                    // Enhancement 2: toggle between Firebase Auth and the DummyJSON API.
+                    SegmentedButton<LoginType>(
+                      segments: const [
+                        ButtonSegment(
+                          value: LoginType.firebase,
+                          icon: Icon(Icons.local_fire_department_outlined),
+                          label: Text('Firebase'),
+                        ),
+                        ButtonSegment(
+                          value: LoginType.dummyjson,
+                          icon: Icon(Icons.cloud_outlined),
+                          label: Text('DummyJSON'),
+                        ),
+                      ],
+                      selected: {_loginType},
+                      onSelectionChanged: (value) {
+                        setState(() {
+                          _loginType = value.first;
+                          _errorMessage = null;
+                          _usernameController.clear();
+                        });
+                      },
+                    ),
+
+                    const SizedBox(height: 20),
+
+                    // Form fields grouped on an elevated white card.
                     Container(
                       padding: const EdgeInsets.all(22),
                       decoration: BoxDecoration(
@@ -245,23 +257,38 @@ class _SignInScreenState extends State<SignInScreen> {
                               const SizedBox(height: 16),
                             ],
 
-                            _FieldLabel('Username'),
+                            // Firebase signs in with email while DummyJSON uses a username.
+                            _FieldLabel(_isFirebase ? 'Email Address' : 'Username'),
                             const SizedBox(height: 6),
                             TextFormField(
                               controller: _usernameController,
-                              keyboardType: TextInputType.text,
+                              keyboardType: _isFirebase
+                                  ? TextInputType.emailAddress
+                                  : TextInputType.text,
                               textInputAction: TextInputAction.next,
                               style: const TextStyle(
                                 fontFamily: 'Poppins',
                                 fontSize: 14,
                               ),
                               decoration: _fieldDecoration(
-                                hint: 'Enter your username',
-                                icon: Icons.person_outline,
+                                hint: _isFirebase
+                                    ? 'Enter your email'
+                                    : 'Enter your username',
+                                icon: _isFirebase
+                                    ? Icons.mail_outline
+                                    : Icons.person_outline,
                               ),
                               validator: (value) {
                                 if (value == null || value.trim().isEmpty) {
-                                  return 'Please enter your username';
+                                  return _isFirebase
+                                      ? 'Please enter your email'
+                                      : 'Please enter your username';
+                                }
+                                if (_isFirebase &&
+                                    !RegExp(
+                                      r'^[\w.+-]+@[\w-]+\.[\w.]+$',
+                                    ).hasMatch(value.trim())) {
+                                  return 'Please enter a valid email';
                                 }
                                 return null;
                               },
@@ -308,11 +335,7 @@ class _SignInScreenState extends State<SignInScreen> {
 
                             const SizedBox(height: 26),
 
-                            // ------------------------------------------
-                            // Enhancement 2: full-width branded "Log In"
-                            // button that triggers the authentication
-                            // logic above.
-                            // ------------------------------------------
+                            // Full-width branded button that runs the login logic.
                             SizedBox(
                               height: 52,
                               child: ElevatedButton(
@@ -348,7 +371,27 @@ class _SignInScreenState extends State<SignInScreen> {
                       ),
                     ),
 
-                    const SizedBox(height: 28),
+                    const SizedBox(height: 20),
+
+                    // Enhancement 2: link to the Firebase signup screen.
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const CustomText(
+                          text: "Don't have an account?",
+                          fontSize: 13,
+                        ),
+                        TextButton(
+                          onPressed: () =>
+                              Navigator.pushNamed(context, '/signup'),
+                          child: const CustomText(
+                            text: 'Sign Up',
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ],
+                    ),
 
                     const SizedBox(height: 12),
                   ],
@@ -392,9 +435,7 @@ class _SignInScreenState extends State<SignInScreen> {
   }
 }
 
-/// Small label placed above each field so the form reads clearly without
-/// relying on Material's floating-label animation, matching the rest of
-/// the app's `CustomText`-based typography.
+// Small label placed above each form field.
 class _FieldLabel extends StatelessWidget {
   final String text;
 
@@ -406,8 +447,7 @@ class _FieldLabel extends StatelessWidget {
   }
 }
 
-/// Purely decorative soft-edged circle used to give the background some
-/// depth without competing with the form content.
+// Decorative soft circle used for background depth.
 class _Blob extends StatelessWidget {
   final double diameter;
   final Color color;

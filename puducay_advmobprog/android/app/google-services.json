@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "671098219138",
+    "project_id": "advmobprog-firebase-2f59a",
+    "storage_bucket": "advmobprog-firebase-2f59a.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:671098219138:android:6d64dc58ff2a6d5200a29b",
+        "android_client_info": {
+          "package_name": "com.example.puducay_advmobprog"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAc458CgaR4tSaHFdPXzMn6qrv5Rr6hQek"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

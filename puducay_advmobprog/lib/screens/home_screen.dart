@@ -19,21 +19,12 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  // Enhancement 2 (Lab Activity 3):
-  // The central bottom-navigation destination is now Cart.
-  // Chat is opened through the FloatingActionButton instead.
+  // Cart is the middle tab while Chat opens from the FloatingActionButton.
   int _selectedIndex = 0;
 
   final PageController _pageController = PageController();
 
-  // ==========================================================================
-  // LAB ACTIVITY 4 — ENHANCEMENT 3
-  // HomeScreen is the single place that reads the persisted session (via
-  // UserService -> User model) and hands it down to the screens that need
-  // it: ProfileScreen renders the User directly, and CartScreen receives
-  // user.id so the Cart tab always requests THIS user's cart from the API
-  // (GET /carts/user/{id}) instead of a hard-coded ID.
-  // ==========================================================================
+  // Loads the signed-in user so the Cart tab uses that user's ID.
   final UserService _userService = UserService();
   late Future<User> _userFuture;
 
@@ -62,9 +53,7 @@ class _HomeScreenState extends State<HomeScreen> {
             );
           }
 
-          // Enhancement 3: if no valid session is found while Home is
-          // already on screen (e.g. token cleared elsewhere), fall back to
-          // Sign-In instead of rendering a broken profile/cart.
+          // Falls back to Sign-In when no valid session is found.
           final user = snapshot.data;
           if (snapshot.hasError || user == null || user.id == 0) {
             WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -107,12 +96,11 @@ class _HomeScreenState extends State<HomeScreen> {
               children: [
                 const ProductScreen(),
 
-                // Enhancement 3: cart scoped to the signed-in user's ID.
+                // Cart scoped to the signed-in user's ID.
                 CartScreen(userId: user.id),
 
-                // Enhancement 3: profile rendered straight from the
-                // saved User model.
-                ProfileScreen(user: user),
+                // Enhancement 3: profile now fetches its own data through UserService().getUserData().
+                const ProfileScreen(),
               ],
               onPageChanged: (page) {
                 setState(() {
@@ -121,12 +109,7 @@ class _HomeScreenState extends State<HomeScreen> {
               },
             ),
 
-            // ============================================================
-            // Enhancement 2 (Lab Activity 3):
-            // Chat was removed from the BottomNavigationBar and converted
-            // into a FloatingActionButton. It is hidden on Cart, matching
-            // the required enhancement behavior.
-            // ============================================================
+            // Chat FloatingActionButton that is hidden on the Cart tab.
             floatingActionButton: _selectedIndex == 1
                 ? null
                 : FloatingActionButton(
