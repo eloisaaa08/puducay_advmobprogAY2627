@@ -109,7 +109,7 @@ class _HomeScreenState extends State<HomeScreen> {
               },
             ),
 
-            // Chat FloatingActionButton that is hidden on the Cart tab.
+            // The Cart tab has its own chat button above the checkout bar, so this one is hidden there.
             floatingActionButton: _selectedIndex == 1
                 ? null
                 : FloatingActionButton(

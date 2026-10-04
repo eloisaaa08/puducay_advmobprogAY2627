@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:http/http.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../constants.dart';
@@ -267,6 +268,7 @@ class UserService {
       password: password,
     );
     await _saveFirebaseSession();
+    await _saveUserToFirestore(credential.user!);
     return credential;
   }
 
@@ -303,6 +305,7 @@ class UserService {
     });
 
     await _saveFirebaseSession();
+    await _saveUserToFirestore(credential.user!, username: username);
     return credential;
   }
 
@@ -319,6 +322,7 @@ class UserService {
     final profile = await _getFirebaseProfile(currentUser!.uid);
     profile['username'] = username;
     await _saveFirebaseProfile(currentUser!.uid, profile);
+    await _saveUserToFirestore(currentUser!, username: username);
   }
 
   // Enhancement 1: re-authenticates then deletes the Firebase account.
@@ -333,6 +337,7 @@ class UserService {
 
     final uid = currentUser!.uid;
     await currentUser!.reauthenticateWithCredential(credential);
+    await FirebaseFirestore.instance.collection('Users').doc(uid).delete();
     await currentUser!.delete();
     await firebaseAuth.signOut();
 
@@ -378,6 +383,25 @@ class UserService {
   ) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('profile_$uid', jsonEncode(profile));
+  }
+
+  // Lab Activity 6: saves the account to the Users collection so it appears in the chat list.
+  Future<void> _saveUserToFirestore(fb.User user, {String? username}) async {
+    final profile = await _getFirebaseProfile(user.uid);
+    final data = <String, dynamic>{
+      'uid': user.uid,
+      'email': user.email ?? '',
+      'firstName': profile['firstName'] ?? '',
+      'lastName': profile['lastName'] ?? '',
+      'username': username ?? user.displayName ?? profile['username'] ?? '',
+    };
+
+    // Empty fields are skipped so a sign-in on another device never erases saved names.
+    data.removeWhere((key, value) => value.toString().isEmpty);
+    await FirebaseFirestore.instance
+        .collection('Users')
+        .doc(user.uid)
+        .set(data, SetOptions(merge: true));
   }
 
   // Reads the extra signup fields saved for a Firebase UID.
